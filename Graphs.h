@@ -56,43 +56,84 @@ namespace graphs {
         }
 
         void add_edge(const Vertex& from, const Vertex& to, const Distance& d) {
-           //TODO
-            return false;
+            add_vertex(from);
+            add_vertex(to);
+            adjacency_list[from].emplace_back(from, to, d);
         }
 
         bool remove_edge(const Vertex& from, const Vertex& to) {
-            //TODO
+            auto it = adjacency_list.find(from);
+            if (it != adjacency_list.end()) {
+                auto& edges = it->second;
+                auto edge_it = remove_if(edges.begin(), edges.end(),
+                    [&to](const Edge& edge) {
+                        return edge.to == to;
+                    });
+                if (edge_it != edges.end()) {
+                    edges.erase(edge_it, edges.end());
+                    return true;
+                }
+            }
             return false;
         }
 
         bool remove_edge(const Edge& e) {
-            //TODO
+            auto it = adjacency_list.find(e.from);
+            if (it != adjacency_list.end()) {
+                auto& edges = it->second;
+                auto edge_it = remove_if(edges.begin(), edges.end(),
+                    [&e](const Edge& edge) {
+                        return edge.to == e.to && edge.distance == e.distance;
+                    });
+                if (edge_it != edges.end()) {
+                    edges.erase(edge_it, edges.end());
+                    return true;
+                }
+            }
             return false;
         }
 
         bool has_edge(const Vertex& from, const Vertex& to) const {
-            //TODO
+            auto it = adjacency_list.find(from);
+            if (it != adjacency_list.end()) {
+                const auto& edges = it->second;
+                return any_of(edges.begin(), edges.end(),
+                    [&to](const Edge& edge) {
+                        return edge.to == to;
+                    });
+            }
             return false;
         }
 
         bool has_edge(const Edge& e) const {
-            //TODO
+            auto it = adjacency_list.find(e.from);
+            if (it != adjacency_list.end()) {
+                const auto& edges = it->second;
+                return any_of(edges.begin(), edges.end(),
+                    [&e](const Edge& edge) {
+                        return edge.to == e.to && edge.distance == e.distance;
+                    });
+            }
             return false;
         }
 
         vector<Edge> edges(const Vertex& vertex) {
-            //TODO
-            vector<Edge> patch {};
-            return patch;
+            auto it = adjacency_list.find(vertex);
+            if (it != adjacency_list.end()) {
+                return it->second;
+            }
+            return vector<Edge>();
         }
 
         size_t order() const {
-            //TODO
-            return 0;
+            return adjacency_list.size();
         }
 
         size_t degree(const Vertex& v) const {
-            //TODO
+            auto it = adjacency_list.find(v);
+            if (it != adjacency_list.end()) {
+                return it->second.size();
+            }
             return 0;
         }
 
