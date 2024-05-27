@@ -1,9 +1,10 @@
-﻿#pragma once
-#include <iostream>
+﻿#include <iostream>
+#include <queue>
 #include <vector>
 #include <memory>
 #include <algorithm>
 #include <unordered_map>
+#include <limits>
 
 using namespace std;
 
@@ -137,19 +138,170 @@ namespace graphs {
             return 0;
         }
 
-        vector<Edge> shortest_path(const Vertex& from, const Vertex& to) const {
-            //TODO
-            vector<Edge> patch {};
-            return patch;
+        void print_graph() const {
+            for (const auto& pair : adjacency_list) {
+                cout << "Vertex " << pair.first << " is connected to:" << endl;
+                for (const auto& edge : pair.second) {
+                    cout << "  (" << edge.from << ") ---[" << edge.distance << "]---> (" << edge.to << ")" << endl;
+                }
+            }
         }
 
+        vector<Edge> shortest_path(const Vertex& from, const Vertex& to) const {
+            unordered_map<Vertex, Distance> distance;
+            unordered_map<Vertex, Vertex> previous;
+            priority_queue<pair<Distance, Vertex>, vector<pair<Distance, Vertex>>, greater<pair<Distance, Vertex>>> pq;
+
+            for (const auto& pair : adjacency_list) {
+                distance[pair.first] = numeric_limits<Distance>::max();
+            }
+            distance[from] = 0;
+            pq.push({ 0, from });
+
+            while (!pq.empty()) {
+                Vertex current = pq.top().second;
+                pq.pop();
+
+                if (current == to) {
+                    break;
+                }
+
+                for (const Edge& edge : adjacency_list.at(current)) {
+                    Distance new_dist = distance[current] + edge.distance;
+                    if (new_dist < distance[edge.to]) {
+                        distance[edge.to] = new_dist;
+                        previous[edge.to] = current;
+                        pq.push({ new_dist, edge.to });
+                    }
+                }
+            }
+
+            vector<Edge> path;
+            Vertex current = to;
+            while (current != from) {
+                if (previous.find(current) == previous.end()) {
+                    return vector<Edge>();
+                }
+                Vertex prev = previous[current];
+                for (const Edge& edge : adjacency_list.at(prev)) {
+                    if (edge.to == current) {
+                        path.push_back(edge);
+                        break;
+                    }
+                }
+                current = prev;
+            }
+            reverse(path.begin(), path.end());
+            return path;
+        }
+
+
         vector<Vertex> walk(const Vertex& start_vertex) const {
-            //TODO
-            vector<Edge> patch {};
-            return patch;
+            vector<Vertex> visited_vertices;
+            if (!has_vertex(start_vertex)) {
+                return visited_vertices;
+            }
+
+            unordered_map<Vertex, bool> visited;
+            queue<Vertex> vertex_queue;
+
+            vertex_queue.push(start_vertex);
+            visited[start_vertex] = true;
+
+            while (!vertex_queue.empty()) {
+                Vertex current = vertex_queue.front();
+                vertex_queue.pop();
+                visited_vertices.push_back(current);
+
+                for (const Edge& edge : adjacency_list.at(current)) {
+                    if (!visited[edge.to]) {
+                        vertex_queue.push(edge.to);
+                        visited[edge.to] = true;
+                    }
+                }
+            }
+
+            return visited_vertices;
+        }
+
+        Distance eccentricity(const Vertex& v) const {
+            unordered_map<Vertex, Distance> distance;
+            priority_queue<pair<Distance, Vertex>, vector<pair<Distance, Vertex>>, greater<pair<Distance, Vertex>>> pq;
+
+            for (const auto& pair : adjacency_list) {
+                distance[pair.first] = numeric_limits<Distance>::max();
+            }
+            distance[v] = 0;
+            pq.push({ 0, v });
+
+            while (!pq.empty()) {
+                Vertex current = pq.top().second;
+                pq.pop();
+
+                for (const Edge& edge : adjacency_list.at(current)) {
+                    Distance new_dist = distance[current] + edge.distance;
+                    if (new_dist < distance[edge.to]) {
+                        distance[edge.to] = new_dist;
+                        pq.push({ new_dist, edge.to });
+                    }
+                }
+            }
+
+            Distance max_distance = 0;
+            for (const auto& pair : distance) {
+                if (pair.second != numeric_limits<Distance>::max()) {
+                    max_distance = max(max_distance, pair.second);
+                }
+            }
+            return max_distance;
+        }
+
+        Vertex find_optimal_warehouse() const {
+            vector<Vertex> all_vertices = vertices();
+            Vertex optimal_vertex;
+            Distance min_eccentricity = numeric_limits<Distance>::max();
+
+            for (const Vertex& v : all_vertices) {
+                if (is_connected(v)) {
+                    Distance e = eccentricity(v);
+                    cout << "Eccentricity of vertex " << v << " is " << e << endl;
+                    if (e < min_eccentricity) {
+                        min_eccentricity = e;
+                        optimal_vertex = v;
+                    }
+                }
+            }
+
+            return optimal_vertex;
         }
 
     private:
         unordered_map<Vertex, vector<Edge>> adjacency_list;
+
+        bool is_connected(const Vertex& v) const {
+            unordered_map<Vertex, bool> visited;
+            queue<Vertex> q;
+            q.push(v);
+            visited[v] = true;
+
+            while (!q.empty()) {
+                Vertex current = q.front();
+                q.pop();
+                for (const Edge& edge : adjacency_list.at(current)) {
+                    if (!visited[edge.to]) {
+                        visited[edge.to] = true;
+                        q.push(edge.to);
+                    }
+                }
+            }
+
+            for (const auto& pair : adjacency_list) {
+                if (!visited[pair.first]) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
     };
 }
